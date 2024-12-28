@@ -1,22 +1,25 @@
 const canvas = document.getElementById("canvas");
-canvas.width = 800; // Adjusted width for better proportions
-canvas.height = 600; // Adjusted height for better proportions
 const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
-// Draw rectangle function
-function drawRectangle(p, color) {
-    ctx.beginPath();
-    ctx.moveTo(p[0].x, p[0].y);
-    ctx.lineTo(p[1].x, p[1].y);
-    ctx.lineTo(p[2].x, p[2].y);
-    ctx.lineTo(p[3].x, p[3].y);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = color;
-    ctx.closePath();
-    ctx.stroke();
+// DDA Algorithm for line drawing
+function drawLine(x1, y1, x2, y2, color) {
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    let steps = Math.max(Math.abs(dx), Math.abs(dy));
+    let xIncrement = dx / steps;
+    let yIncrement = dy / steps;
+    let x = x1;
+    let y = y1;
+
+    for (let i = 0; i <= steps; i++) {
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(x), Math.round(y), 1, 1); // Draw pixel
+        x += xIncrement;
+        y += yIncrement;
+    }
 }
 
-// Initial flag coordinates
+// Initial flag coordinates and border color
 const flagCoordinates = [
     { x: 0, y: 0 },
     { x: 800, y: 0 },
@@ -25,7 +28,11 @@ const flagCoordinates = [
 ];
 const flagBorderColor = "black";
 
-drawRectangle(flagCoordinates, flagBorderColor);
+// Draw the flag border using DDA (all four sides)
+drawLine(flagCoordinates[0].x, flagCoordinates[0].y, flagCoordinates[1].x, flagCoordinates[1].y, flagBorderColor);
+drawLine(flagCoordinates[1].x, flagCoordinates[1].y, flagCoordinates[2].x, flagCoordinates[2].y, flagBorderColor);
+drawLine(flagCoordinates[2].x, flagCoordinates[2].y, flagCoordinates[3].x, flagCoordinates[3].y, flagBorderColor);
+drawLine(flagCoordinates[3].x, flagCoordinates[3].y, flagCoordinates[0].x, flagCoordinates[0].y, flagBorderColor);
 
 // Draw the stripes
 const stripeHeight = 600 / 13; // The height of each stripe
@@ -33,15 +40,21 @@ const stripeColors = ["#B22234", "white"]; // Colors for the stripes
 
 for (let i = 0; i < 13; i++) {
     const color = stripeColors[i % 2]; // Alternate between red and white
+    
+    // Outline the stripe
+    drawLine(0, i * stripeHeight, 800, i * stripeHeight, flagBorderColor); // Top border of the stripe
+    drawLine(0, (i + 1) * stripeHeight, 800, (i + 1) * stripeHeight, flagBorderColor); // Bottom border of the stripe
+    
+    // Fill the stripe using standard fillRect
     ctx.fillStyle = color;
-    ctx.fillRect(0, i * stripeHeight, 800, stripeHeight); // Fill rectangle for each stripe
+    ctx.fillRect(1, i * stripeHeight + 1, 798, stripeHeight - 1); // Fill the stripe with inset to avoid border
 }
 
-// Union coordinates
+// Draw the union
 const unionWidth = 245;
 const unionHeight = (600 / 13) * 7;
 ctx.fillStyle = "#3C3B6E";
-ctx.fillRect(0, 0, unionWidth, unionHeight);
+ctx.fillRect(1, 1, unionWidth - 1, unionHeight - 1); // Fill the union with inset to avoid border
 
 // Function to draw a star
 function drawStar(cx, cy, spikes, outerRadius, innerRadius) {
@@ -54,14 +67,12 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius) {
     ctx.moveTo(cx, cy - outerRadius);
 
     for (let i = 0; i < spikes; i++) {
-        // Outer point
         x = cx + Math.cos(rotation) * outerRadius;
         y = cy + Math.sin(rotation) * outerRadius;
         ctx.lineTo(x, y);
 
         rotation += step;
 
-        // Inner point
         x = cx + Math.cos(rotation) * innerRadius;
         y = cy + Math.sin(rotation) * innerRadius;
         ctx.lineTo(x, y);
@@ -85,18 +96,14 @@ const starOffsetX = 40; // Horizontal spacing between stars
 const starOffsetY = 30; // Vertical spacing between stars
 const paddingX = 20; // Padding on the left and right for even rows
 
-
 // Loop to draw the stars in the union
-for (let row = 0; row < 9; row++) {
-    // Determine the number of stars based on the row index
+for (let row = 0; row < 10; row++) {
     const numStars = (row % 2 === 0) ? 6 : 5; // 5 stars for even rows, 6 stars for odd rows
-
-    // Calculate the starting x position based on whether the row is even or odd
     const startX = (row % 2 === 0) ? paddingX : 40; // Add padding for even rows
 
     for (let col = 0; col < numStars; col++) {
-      const x = startX + col * starOffsetX; // X position of the star
-      const y = row * starOffsetY + 20; // Y position of the star
+        const x = startX + col * starOffsetX; // X position of the star
+        const y = row * starOffsetY + 20; // Y position of the star
         drawStar(x, y, 5, starOuterRadius, starInnerRadius); // Draw the star
     }
 }
